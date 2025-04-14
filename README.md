@@ -63,23 +63,26 @@ python video_to_text.py
 
 ## Output Directory Structure
 
+The tool organizes processed files in a flat structure with separate directories for each file type:
+
 ```
-videos/
-└── video_name/
-    ├── audio/
-    │   └── video_name.mp3
-    ├── transcripts/
-    │   ├── video_name.txt
-    │   └── video_name.html
-    └── summaries/
-        └── video_name.html
+├── audio/
+│   └── video_name.mp3       # Extracted audio files
+├── transcript/
+│   ├── video_name.txt       # Raw VTT transcripts
+│   └── video_name.html      # Formatted HTML transcripts
+├── summary/
+│   └── video_name.html      # HTML summaries
+└── video/
+    └── video_name.mp4       # Source video files
 ```
 
 ## Notes
 
 - The tool optimizes audio extraction to keep files under 25MB (OpenAI's file size limit)
-- Intermediate files are cached to avoid redundant processing
-- Videos are automatically copied to the 'videos' directory if not already there
+- All files (audio, transcripts, HTML, and summaries) are cached to avoid redundant processing
+- Place your video files in the 'video' directory for batch processing
+- Detailed error information is displayed for OpenAI API errors to help with troubleshooting
 
 ## License
 
