@@ -1,2 +1,12 @@
-/videos
 .DS_Store
+
+# Generated content directories
+/audio/
+/summary/
+/transcript/
+/video/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class

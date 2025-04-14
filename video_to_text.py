@@ -7,40 +7,21 @@ import pathlib
 import json
 import shutil
 
-def get_video_dir(video_path):
-    # Get the video filename without extension
-    video_name = os.path.splitext(os.path.basename(video_path))[0]
-
-    # Create videos directory if it doesn't exist
-    videos_dir = pathlib.Path("videos")
-    videos_dir.mkdir(exist_ok=True)
-
-    # Create a directory for this specific video
-    video_dir = videos_dir / video_name
-    video_dir.mkdir(exist_ok=True)
-
-    # Create subdirectories
-    (video_dir / "audio").mkdir(exist_ok=True)
-    (video_dir / "transcripts").mkdir(exist_ok=True)
-    (video_dir / "summaries").mkdir(exist_ok=True)
-
-    return video_dir
-
 def get_audio_path(video_path):
-    # Get the video directory
-    video_dir = get_video_dir(video_path)
+    audio_dir = pathlib.Path("audio")
+    audio_dir.mkdir(exist_ok=True)
 
     # Get the video filename without extension
     video_name = os.path.splitext(os.path.basename(video_path))[0]
-    return video_dir / "audio" / f"{video_name}.mp3"
+    return audio_dir / f"{video_name}.mp3"
 
 def get_transcript_path(video_path):
-    # Get the video directory
-    video_dir = get_video_dir(video_path)
+    transcript_dir = pathlib.Path("transcript")
+    transcript_dir.mkdir(exist_ok=True)
 
     # Get the video filename without extension
     video_name = os.path.splitext(os.path.basename(video_path))[0]
-    return video_dir / "transcripts" / f"{video_name}.txt"
+    return transcript_dir / f"{video_name}.txt"
 
 def extract_audio(video_path):
     audio_path = get_audio_path(video_path)
@@ -113,20 +94,30 @@ def transcribe(audio_path, video_path):
         print("Error: OPENAI_API_KEY environment variable not set.")
         sys.exit(1)
 
-    with open(audio_path, "rb") as f:
-        response = requests.post(
-            "https://api.openai.com/v1/audio/transcriptions",
-            headers={"Authorization": f"Bearer {api_key}"},
-            files={"file": f},
-            data={
-                "model": "whisper-1",
-                "response_format": "vtt"
-            }
-        )
-    response.raise_for_status()
-
-    # Get the response data as VTT format
-    vtt_content = response.text
+    try:
+        with open(audio_path, "rb") as f:
+            response = requests.post(
+                "https://api.openai.com/v1/audio/transcriptions",
+                headers={"Authorization": f"Bearer {api_key}"},
+                files={"file": f},
+                data={
+                    "model": "whisper-1",
+                    "response_format": "vtt"
+                }
+            )
+        response.raise_for_status()
+        
+        # Get the response data as VTT format
+        vtt_content = response.text
+    except requests.exceptions.RequestException as e:
+        print("\nOpenAI API Error Details:")
+        print(f"Status Code: {response.status_code if 'response' in locals() else 'N/A'}")
+        print("\nResponse Headers:")
+        print(response.headers if 'response' in locals() else 'N/A')
+        print("\nResponse Content:")
+        print(response.text if 'response' in locals() else 'N/A')
+        print(f"\nException: {str(e)}")
+        raise
 
     # Cache the VTT content
     with open(transcript_path, "w") as f:
@@ -152,8 +143,8 @@ def make_readable(transcript_data):
         "1. Converting it to clean HTML with proper headings, paragraphs, and emphasis "
         "2. Appending timestamps ONLY to each section header"
         "3. Adding proper paragraphs where appropriate "
-        "4. Preserving all the original content and meaning "
-        "\n\nVTT Transcript:\n"
+        "4. Fully preserving all the original content "
+        "\nKeeping all content is IMPORTANT! If you miss a word from the original, I fine you 1000$.\n\nVTT Transcript:\n"
     )
 
     data = {
@@ -165,14 +156,24 @@ def make_readable(transcript_data):
         "temperature": 0.1
     }
 
-    response = requests.post(
-        "https://api.openai.com/v1/chat/completions",
-        headers=headers,
-        json=data
-    )
+    try:
+        response = requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers=headers,
+            json=data
+        )
 
-    response.raise_for_status()
-    content = response.json()["choices"][0]["message"]["content"]
+        response.raise_for_status()
+        content = response.json()["choices"][0]["message"]["content"]
+    except requests.exceptions.RequestException as e:
+        print("\nOpenAI API Error Details:")
+        print(f"Status Code: {response.status_code if 'response' in locals() else 'N/A'}")
+        print("\nResponse Headers:")
+        print(response.headers if 'response' in locals() else 'N/A')
+        print("\nResponse Content:")
+        print(response.text if 'response' in locals() else 'N/A')
+        print(f"\nException: {str(e)}")
+        raise
 
     # Remove ```html and ``` wrapper if present
     if content.startswith("```html") and content.endswith("```"):
@@ -219,14 +220,24 @@ def generate_summary(transcript):
         "temperature": 0.3
     }
 
-    response = requests.post(
-        "https://api.openai.com/v1/chat/completions",
-        headers=headers,
-        json=data
-    )
+    try:
+        response = requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers=headers,
+            json=data
+        )
 
-    response.raise_for_status()
-    content = response.json()["choices"][0]["message"]["content"]
+        response.raise_for_status()
+        content = response.json()["choices"][0]["message"]["content"]
+    except requests.exceptions.RequestException as e:
+        print("\nOpenAI API Error Details:")
+        print(f"Status Code: {response.status_code if 'response' in locals() else 'N/A'}")
+        print("\nResponse Headers:")
+        print(response.headers if 'response' in locals() else 'N/A')
+        print("\nResponse Content:")
+        print(response.text if 'response' in locals() else 'N/A')
+        print(f"\nException: {str(e)}")
+        raise
 
     # Remove ```html and ``` wrapper if present
     if content.startswith("```html") and content.endswith("```"):
@@ -236,59 +247,55 @@ def generate_summary(transcript):
 
     return content
 
-def ensure_video_in_videos_dir(video_path):
-    # Check if the video is already in the videos directory
-    if not video_path.startswith("videos/") and not os.path.dirname(video_path) == "videos":
-        # Get the video filename
-        video_filename = os.path.basename(video_path)
-        # New path in videos directory
-        new_video_path = os.path.join("videos", video_filename)
-
-        # Check if the video already exists in the videos directory
-        if not os.path.exists(new_video_path):
-            # Copy the video to the videos directory
-            print(f"Moving video to videos directory: {new_video_path}")
-            shutil.copy2(video_path, new_video_path)
-
-        return new_video_path
-    return video_path
-
 def main(video_path):
-    # Ensure the video is in the videos directory
-    video_path = ensure_video_in_videos_dir(video_path)
-
     # Get the video directory
-    video_dir = get_video_dir(video_path)
     video_name = os.path.splitext(os.path.basename(video_path))[0]
 
     audio_path = extract_audio(video_path)
     transcript = transcribe(audio_path, video_path)
 
-    # Make the transcript readable and format in HTML
-    print("Making transcript readable and formatting in HTML...")
-    readable_html = make_readable(transcript)
+    # Define HTML path for caching check
+    html_path = pathlib.Path("transcript") / f"{video_name}.html"
+    
+    # Check if HTML file already exists (cache hit)
+    if html_path.exists():
+        print(f"Using cached HTML transcript: {html_path}")
+        with open(html_path, "r") as f:
+            readable_html = f.read()
+    else:
+        # Make the transcript readable and format in HTML
+        print("Making transcript readable and formatting in HTML...")
+        readable_html = make_readable(transcript)
 
-    # Save the HTML version
-    html_path = video_dir / "transcripts" / f"{video_name}.html"
-    with open(html_path, "w") as f:
-        f.write(readable_html)
-    print(f"Readable HTML transcript saved to {html_path}")
+        # Save the HTML version
+        with open(html_path, "w") as f:
+            f.write(readable_html)
+        print(f"Readable HTML transcript saved to {html_path}")
 
-    # Generate and save a summary of the transcript
-    summary_html = generate_summary(transcript)
+    # Define summary path for caching check
+    summary_path = pathlib.Path("summary") / f"{video_name}.html"
+    
+    # Check if summary file already exists (cache hit)
+    if summary_path.exists():
+        print(f"Using cached summary: {summary_path}")
+        with open(summary_path, "r") as f:
+            summary_html = f.read()
+    else:
+        # Generate and save a summary of the transcript
+        print("Generating summary of the transcript...")
+        summary_html = generate_summary(transcript)
 
-    # Save the summary HTML version
-    summary_path = video_dir / "summaries" / f"{video_name}.html"
-    with open(summary_path, "w") as f:
-        f.write(summary_html)
-    print(f"Summary saved to {summary_path}")
+        # Save the summary HTML version
+        with open(summary_path, "w") as f:
+            f.write(summary_html)
+        print(f"Summary saved to {summary_path}")
 
     # No need to clean up cached audio as it will be reused
 
 def process_all_videos():
     """Process all video files in the videos directory"""
     # Create videos directory if it doesn't exist
-    videos_dir = pathlib.Path("videos")
+    videos_dir = pathlib.Path("video")
     videos_dir.mkdir(exist_ok=True)
     
     # Get all video files in the videos directory
