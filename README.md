@@ -43,7 +43,7 @@ A command-line utility that converts video files to readable transcripts and sum
 python video_to_text.py /path/to/your/video.mp4
 ```
 
-### Process all videos in the 'videos' directory
+### Process all videos in the 'video' directory
 
 ```bash
 python video_to_text.py

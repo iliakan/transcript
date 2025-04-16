@@ -292,21 +292,21 @@ def main(video_path):
 
     # No need to clean up cached audio as it will be reused
 
-def process_all_videos():
-    """Process all video files in the videos directory"""
-    # Create videos directory if it doesn't exist
-    videos_dir = pathlib.Path("video")
-    videos_dir.mkdir(exist_ok=True)
+def process_all_video():
+    """Process all video files in the video directory"""
+    # Create video directory if it doesn't exist
+    video_dir = pathlib.Path("video")
+    video_dir.mkdir(exist_ok=True)
     
-    # Get all video files in the videos directory
+    # Get all video files in the video directory
     video_extensions = [".mp4", ".mov", ".avi", ".mkv", ".webm"]
     video_files = []
     
     for ext in video_extensions:
-        video_files.extend(list(videos_dir.glob(f"*{ext}")))
+        video_files.extend(list(video_dir.glob(f"*{ext}")))
     
     if not video_files:
-        print("No video files found in the videos directory.")
+        print("No video files found in the video directory.")
         return
     
     print(f"Found {len(video_files)} video files to process.")
@@ -322,12 +322,12 @@ def process_all_videos():
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
-        # No arguments provided, process all videos in the videos directory
-        process_all_videos()
+        # No arguments provided, process all video in the video directory
+        process_all_video()
     elif len(sys.argv) == 2:
         # Process a single video file
         main(sys.argv[1])
     else:
         print("Usage: python video_to_text.py [video_file]")
-        print("If no video file is specified, all videos in the 'videos' directory will be processed.")
+        print("If no video file is specified, all video in the 'video' directory will be processed.")
         sys.exit(1)
